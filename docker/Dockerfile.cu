@@ -1,0 +1,14 @@
+FROM sbtscala/scala-sbt:eclipse-temurin-25.0.3_9_1.12.14_3.8.4 as builder
+
+WORKDIR /app
+COPY . .
+
+ENV MAIN_CLASS=com.baldo3000.cshas.spawnControlUnit
+RUN sbt "set root / assembly / mainClass := Some(\"$MAIN_CLASS\")" "root / assembly"
+
+FROM eclipse-temurin:25.0.3_9-jre
+
+WORKDIR /app
+COPY --from=builder /app/target/scala-3.8.4/cshas-assembly-*.jar /app/cshas.jar
+
+ENTRYPOINT ["java", "-jar", "cshas.jar"]
