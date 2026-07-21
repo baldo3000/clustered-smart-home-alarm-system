@@ -36,7 +36,7 @@ object KeypadActor:
       message match
         case EnterPIN(pin, armConfig) =>
           ctx.log.info(s"Entered PIN: $pin")
-          controlUnits.foreach(_ ! PINEntered(pin, armConfig)) // TODO: check
+          controlUnits.foreach(_ ! PINEntered(pin, armConfig))
           Behaviors.same
         case ControlUnitsUpdated(controlUnits) =>
           ctx.log.info(s"Control units updated in keypad: $controlUnits")

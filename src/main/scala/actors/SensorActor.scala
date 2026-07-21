@@ -41,7 +41,7 @@ object SensorActor:
       message match
         case Trigger =>
           ctx.log.info(s"Sensor ${sensorConfig.sensorID} triggered")
-          controlUnits.foreach(_ ! SensorTriggered(sensorConfig)) // TODO: check
+          controlUnits.foreach(_ ! SensorTriggered(sensorConfig))
           Behaviors.same
         case ControlUnitsUpdated(controlUnits) =>
           ctx.log.info(s"Control units updated in sensor: $controlUnits")

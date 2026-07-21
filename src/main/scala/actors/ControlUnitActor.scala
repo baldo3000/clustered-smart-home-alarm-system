@@ -109,7 +109,7 @@ object ControlUnitActor:
             disarmed(state, ctx)
         case StartAlarm =>
           ctx.log.info("System alarm starting")
-          state.siren.foreach(_ ! SirenActor.Start) // TODO: check
+          state.siren.foreach(_ ! SirenActor.Start)
           alarm(state, ctx)
 
   private def alarm(
@@ -120,7 +120,7 @@ object ControlUnitActor:
       handleSirensUpdated(state, ctx)(alarm(_, ctx)).orElse:
         case PINEntered(pin, _) =>
           onCorrectPIN(state, ctx, pin, "disabling alarm"):
-            state.siren.foreach(_ ! SirenActor.Stop) // TODO: check
+            state.siren.foreach(_ ! SirenActor.Stop)
             disarmed(state, ctx)
 
   private def handleSirensUpdated(
