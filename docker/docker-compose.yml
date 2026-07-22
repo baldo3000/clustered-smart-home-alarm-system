@@ -3,8 +3,6 @@ x-cu-base: &cu
   build:
     context: ../
     dockerfile: docker/Dockerfile.cu
-  ports:
-    - "1600:1600"
 
 x-sensor-base: &sensor
   image: cshas/sensor
@@ -34,25 +32,28 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.listener
+    ports:
+      - "1600:1600"
     environment:
       - CLUSTER_IP=listener
-      - CLUSTER_PORT=1500
-      - SEED_PORT_1600_TCP_ADDR=cu
+      - CLUSTER_PORT=1600
+      - SEED_PORT_1600_TCP_ADDR=listener
   
   cu:
     <<: *cu
     environment:
       - CLUSTER_IP=cu
-      - CLUSTER_PORT=1600
-      - SEED_PORT_1600_TCP_ADDR=cu
+      - CLUSTER_PORT=1500
+      - SEED_PORT_1600_TCP_ADDR=listener
       - CORRECT_PIN=1234
+    restart: unless-stopped
 
   sensor1:
     <<: *sensor
     environment:
       - CLUSTER_IP=sensor1
       - CLUSTER_PORT=1701
-      - SEED_PORT_1600_TCP_ADDR=cu
+      - SEED_PORT_1600_TCP_ADDR=listener
       - SENSOR_ID=sensor1
       - ZONES=bedroom,livingroom
       - SENSOR_TYPE=motion
@@ -62,7 +63,7 @@ services:
     environment:
       - CLUSTER_IP=sensor2
       - CLUSTER_PORT=1702
-      - SEED_PORT_1600_TCP_ADDR=cu
+      - SEED_PORT_1600_TCP_ADDR=listener
       - SENSOR_ID=sensor2
       - ZONES=kitchen
       - SENSOR_TYPE=barrier
@@ -72,11 +73,11 @@ services:
     environment:
       - CLUSTER_IP=keypad
       - CLUSTER_PORT=1800
-      - SEED_PORT_1600_TCP_ADDR=cu
+      - SEED_PORT_1600_TCP_ADDR=listener
       
   siren:
     <<: *siren
     environment:
       - CLUSTER_IP=siren
       - CLUSTER_PORT=1900
-      - SEED_PORT_1600_TCP_ADDR=cu
+      - SEED_PORT_1600_TCP_ADDR=listener

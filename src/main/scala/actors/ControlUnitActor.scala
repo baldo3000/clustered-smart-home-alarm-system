@@ -7,6 +7,7 @@ import org.apache.pekko.actor.typed.receptionist.{Receptionist, ServiceKey}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
+import java.nio.file.{Files, Paths}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object ControlUnitActor:
@@ -44,7 +45,26 @@ object ControlUnitActor:
       )
 
       ctx.system.receptionist ! Receptionist.Register(serviceKey, ctx.self)
-      disarmed(State(correctPin), ctx)
+
+      val state = State(correctPin)
+      val path = Paths.get("control-unit-started")
+      if (Files.notExists(path)) {
+        Files.createFile(path)
+        disarmed(state, ctx)
+      } else {
+        ctx.log.info("Failure detected. Entering recovery.")
+        recovery(state, ctx)
+      }
+
+  private def recovery(
+      state: State,
+      ctx: ActorContext[Command]
+  ): Behavior[Command] =
+    Behaviors.receiveMessagePartial:
+      handleSirensUpdated(state, ctx)(recovery(_, ctx)).orElse:
+        case PINEntered(pin, armConfig) =>
+          onCorrectPIN(state, ctx, pin, "recovering the system"):
+            disarmed(state, ctx)
 
   private def disarmed(
       state: State,
@@ -53,6 +73,7 @@ object ControlUnitActor:
     Behaviors.receiveMessagePartial:
       handleSirensUpdated(state, ctx)(disarmed(_, ctx)).orElse:
         case PINEntered(pin, armConfig) =>
+          if pin == 666 then throw new RuntimeException("Control Unit Crashed")
           onCorrectPIN(state, ctx, pin, "arming the system"):
             Behaviors.withTimers: timer =>
               timer.cancelAll()
