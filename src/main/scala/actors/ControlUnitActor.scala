@@ -5,7 +5,7 @@ import HomeAlarmProtocol.*
 
 import org.apache.pekko.actor.typed.receptionist.{Receptionist, ServiceKey}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 
 import java.nio.file.{Files, Paths}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -34,7 +34,7 @@ object ControlUnitActor:
   )
 
   def apply(correctPin: Int): Behavior[Command] =
-    Behaviors.setup: ctx =>
+    val initialState = Behaviors.setup[Command]: ctx =>
       val listingAdapter = ctx.messageAdapter[Receptionist.Listing]:
         case SirenActor.serviceKey.Listing(sirens) =>
           SirensUpdated(sirens)
@@ -48,13 +48,15 @@ object ControlUnitActor:
 
       val state = State(correctPin)
       val path = Paths.get("control-unit-started")
-      if (Files.notExists(path)) {
+      if Files.notExists(path)
+      then
         Files.createFile(path)
         disarmed(state, ctx)
-      } else {
+      else
         ctx.log.info("Failure detected. Entering recovery.")
         recovery(state, ctx)
-      }
+
+    Behaviors.supervise(initialState).onFailure(SupervisorStrategy.restart)
 
   private def recovery(
       state: State,
@@ -73,7 +75,6 @@ object ControlUnitActor:
     Behaviors.receiveMessagePartial:
       handleSirensUpdated(state, ctx)(disarmed(_, ctx)).orElse:
         case PINEntered(pin, armConfig) =>
-          if pin == 666 then throw new RuntimeException("Control Unit Crashed")
           onCorrectPIN(state, ctx, pin, "arming the system"):
             Behaviors.withTimers: timer =>
               timer.cancelAll()
@@ -160,7 +161,8 @@ object ControlUnitActor:
       pin: Int,
       action: String
   )(transition: => Behavior[Command]): Behavior[Command] =
-    if pin == state.correctPIN then
+    if pin == 666 then throw new RuntimeException("Control Unit Crashed")
+    else if pin == state.correctPIN then
       ctx.log.info(s"PIN entered correctly, $action")
       transition
     else
